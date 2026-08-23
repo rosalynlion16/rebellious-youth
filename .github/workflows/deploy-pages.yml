@@ -2,7 +2,7 @@ name: Deploy Rebellious Youth test site
 
 on:
   push:
-    branches: [pages-test, dev]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
@@ -18,74 +18,51 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout artwork branch
         uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: source
 
-      - name: Mirror current game files
+      - name: Restore playable snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: web-snapshot
+          path: _site
+
+      - name: Install original True Ending PNG artwork
         shell: bash
         run: |
           set -euo pipefail
-          BASE='https://rebellious-youth-demo.rosalynlion002.chatgpt.site'
-          mkdir -p _site
-          while IFS= read -r file; do
-            [ -z "$file" ] && continue
-            mkdir -p "_site/$(dirname "$file")"
-            echo "Fetching $file"
-            curl --retry 4 --retry-delay 2 --fail --location --silent --show-error \
-              "$BASE/$file" -o "_site/$file" || echo "WARN: missing $file"
-          done < mirror-files.txt
-          test -s _site/index.html
-          test -s _site/_next/static/chunks/page-BFC0CKDW.js
-
-      - name: Patch for GitHub Pages project path
-        shell: bash
-        run: |
+          mkdir -p _site/true-ending
+          cp source/cg_true01_kapok_call.png _site/true-ending/cg_true01_kapok_call.png
+          cp source/cg_true02_airport_group.png _site/true-ending/cg_true02_airport_group.png
+          cp source/cg_true02_airport_goodbye.png _site/true-ending/cg_true02_airport_goodbye.png
+          cp source/lin_23_game_sprite.png _site/true-ending/lin_23_game_sprite.png
+          cp source/zeng_23_game_sprite.png _site/true-ending/zeng_23_game_sprite.png
+          cp source/rain_22_game_sprite.png _site/true-ending/rain_22_game_sprite.png
+          cp source/shop_master_normal.png _site/true-ending/shop_master_normal.png
           python - <<'PY'
           from pathlib import Path
-          import re
-
-          root = Path('_site')
-          base = '/rebellious-youth'
-          prefixes = [
-              '/_next/', '/bgm/', '/scene-assets/', '/owner/', '/rain/',
-              '/trust/', '/family/', '/school/', '/life/', '/resource/', '/true-ending/'
-          ]
-          root_files = ['/favicon.svg','/file.svg','/globe.svg','/window.svg']
-
-          for p in root.rglob('*'):
-              if not p.is_file() or p.suffix.lower() not in {'.html','.js','.css','.json','.svg'}:
-                  continue
-              try:
-                  s = p.read_text(encoding='utf-8')
-              except UnicodeDecodeError:
-                  continue
-              if p.name == 'index.html':
-                  s = re.sub(r'<script[^>]+kaspersky-labs\\.com[^>]*></script>', '', s)
-                  s = re.sub(r'<link[^>]+kaspersky-labs\\.com[^>]*>', '', s)
-              for pre in prefixes:
-                  s = s.replace(pre, base + pre)
-              for rf in root_files:
-                  s = s.replace(rf, base + rf)
-              p.write_text(s, encoding='utf-8')
-
-          (root / '.nojekyll').write_text('', encoding='utf-8')
+          p=Path('_site/true-ending/true-ending.js')
+          s=p.read_text(encoding='utf-8')
+          for name in ['cg_true01_kapok_call','cg_true02_airport_group','cg_true02_airport_goodbye','lin_23_game_sprite','zeng_23_game_sprite','rain_22_game_sprite']:
+              s=s.replace(name+'.webp',name+'.png')
+          s=s.replace('supervisor_normal.webp','shop_master_normal.png')
+          p.write_text(s,encoding='utf-8')
           PY
+          file _site/true-ending/*.png
+          test -s _site/true-ending/lin_23_game_sprite.png
+          test -s _site/true-ending/zeng_23_game_sprite.png
+          test -s _site/true-ending/rain_22_game_sprite.png
+          test -s _site/true-ending/shop_master_normal.png
 
-      - name: Save complete playable snapshot to GitHub
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Keep GitHub Pages project paths valid
         shell: bash
         run: |
           set -euo pipefail
-          cd _site
-          git init
-          git checkout -b web-snapshot
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git commit -m 'Snapshot playable web build from rescued v85 site'
-          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin web-snapshot
+          touch _site/.nojekyll
+          grep -q '/rebellious-youth/' _site/index.html || true
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
