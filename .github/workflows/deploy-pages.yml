@@ -62,27 +62,32 @@ jobs:
           js.write_text(s,encoding='utf-8')
           PY
 
-      - name: Install latest transparent Zeng character sprites
+      - name: Install fresh Zeng portraits with cache-busted names
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p _site/character/zeng
-          cp main-source/zeng/zeng_normal.png _site/character/zeng/zeng_normal.png
-          cp main-source/zeng/zeng_polite.png _site/character/zeng/zeng_polite.png
-          cp main-source/zeng/zeng_innocent.png _site/character/zeng/zeng_innocent.png
-          cp main-source/zeng/zeng_happy.png _site/character/zeng/zeng_happy.png
+          cp main-source/zeng/zeng_normal.png _site/character/zeng/zeng_normal_t2.png
+          cp main-source/zeng/zeng_polite.png _site/character/zeng/zeng_polite_t2.png
+          cp main-source/zeng/zeng_innocent.png _site/character/zeng/zeng_innocent_t2.png
+          cp main-source/zeng/zeng_happy.png _site/character/zeng/zeng_happy_t2.png
 
+          python -m pip install --quiet pillow
           python - <<'PY'
           from pathlib import Path
-          for p in Path('_site/character/zeng').glob('*.png'):
-              data=p.read_bytes()
-              if data[:8] != b'\x89PNG\r\n\x1a\n':
-                  raise SystemExit(f'{p}: not a PNG')
-              color_type=data[25]
-              has_alpha=color_type in (4,6) or b'tRNS' in data
-              print(f'{p.name}: PNG color_type={color_type}, transparency={has_alpha}, bytes={len(data)}')
-              if not has_alpha:
-                  raise SystemExit(f'{p}: NO ALPHA/TRANSPARENCY - please replace with transparent portrait')
+          from PIL import Image
+
+          for p in sorted(Path('_site/character/zeng').glob('*_t2.png')):
+              with Image.open(p) as im:
+                  rgba = im.convert('RGBA')
+                  alpha = rgba.getchannel('A')
+                  lo, hi = alpha.getextrema()
+                  transparent = sum(1 for a in alpha.getdata() if a < 255)
+                  total = rgba.width * rgba.height
+                  ratio = transparent / total
+                  print(f'{p.name}: size={rgba.size}, alpha_range=({lo},{hi}), transparent_pixels={transparent}/{total} ({ratio:.2%})')
+                  if lo == 255 or transparent == 0:
+                      raise SystemExit(f'{p}: alpha channel exists but contains NO transparent pixels')
           PY
 
           python - <<'PY'
@@ -91,19 +96,20 @@ jobs:
           js=Path('_site/zeng-route/zeng-route.js')
           s=js.read_text(encoding='utf-8')
           sprite_map = '''const spriteMap={
-          'zeng_normal':'character/zeng/zeng_normal.png',
-          'zeng_polite':'character/zeng/zeng_polite.png',
-          'zeng_innocent':'character/zeng/zeng_innocent.png',
-          'zeng_happy':'character/zeng/zeng_happy.png',
+          'zeng_normal':'character/zeng/zeng_normal_t2.png',
+          'zeng_polite':'character/zeng/zeng_polite_t2.png',
+          'zeng_innocent':'character/zeng/zeng_innocent_t2.png',
+          'zeng_happy':'character/zeng/zeng_happy_t2.png',
           'lin_annoyed':'scene-assets/lin-annoyed-transparent.png'
           };'''
           s, count = re.subn(r'const spriteMap=\{.*?\n\};', sprite_map, s, count=1, flags=re.S)
           if count != 1:
               raise SystemExit('Unable to locate Zeng spriteMap')
           js.write_text(s, encoding='utf-8')
+
           index=Path('_site/zeng-route/index.html')
           html=index.read_text(encoding='utf-8')
-          html=re.sub(r'zeng-route\.js\?v=[^"\']+', 'zeng-route.js?v=narration3', html)
+          html=re.sub(r'zeng-route\.js\?v=[^"\']+', 'zeng-route.js?v=transparent4', html)
           index.write_text(html,encoding='utf-8')
           PY
 
@@ -113,15 +119,15 @@ jobs:
           set -euo pipefail
           test -s _site/zeng-route/index.html
           test -s _site/zeng-route/zeng-route.js
-          test -s _site/character/zeng/zeng_normal.png
-          test -s _site/character/zeng/zeng_polite.png
-          test -s _site/character/zeng/zeng_innocent.png
-          test -s _site/character/zeng/zeng_happy.png
+          test -s _site/character/zeng/zeng_normal_t2.png
+          test -s _site/character/zeng/zeng_polite_t2.png
+          test -s _site/character/zeng/zeng_innocent_t2.png
+          test -s _site/character/zeng/zeng_happy_t2.png
           test -s _site/scene-assets/lin-annoyed-transparent.png
           grep -q '比較好管的那個' _site/zeng-route/zeng-route.js
-          grep -q 'character/zeng/zeng_normal.png' _site/zeng-route/zeng-route.js
+          grep -q 'zeng_normal_t2.png' _site/zeng-route/zeng-route.js
           grep -q 'setNarrationBox' _site/zeng-route/zeng-route.js
-          grep -q 'narration3' _site/zeng-route/index.html
+          grep -q 'transparent4' _site/zeng-route/index.html
 
       - name: Keep GitHub Pages project paths valid
         shell: bash
@@ -143,7 +149,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Snapshot Zeng KEY01 with transparent sprites and centered narration'
+          git commit -m 'Snapshot Zeng KEY01 real transparency cache bust'
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin web-snapshot
 
