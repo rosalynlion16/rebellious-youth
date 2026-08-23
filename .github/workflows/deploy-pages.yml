@@ -84,9 +84,13 @@ jobs:
           if count!=1: raise SystemExit('Unable to locate spriteMap')
           s=s.replace("['旁白','回答快得像是早就準備好了.']","['旁白','回答快得像是早就準備好了。']")
           s=s.replace("['少年調查官','KEY02 那天十一點回家的事。']","['少年調查官','之前問我很晚回家那件事。']")
+          old="const key04TrustExtra=[['曾子豪｜zeng_normal','……我爸上次去學校。'],['曾子豪｜zeng_normal','好像國中了吧。'],['少年調查官','很久了。'],['曾子豪｜zeng_normal','還好吧。'],['曾子豪｜zeng_normal','反正成績不要太難看。'],['曾子豪｜zeng_normal','不要又搞到法院。'],['曾子豪｜zeng_normal','他們其實也不太管。'],['少年調查官','你喜歡這樣？'],['曾子豪｜zeng_normal','滿爽的啊。'],['旁白','他停了一下。']];"
+          new="const key04TrustExtra=[['曾子豪｜zeng_normal','……我爸上次去學校。'],['曾子豪｜zeng_normal','好像國中了吧。'],['少年調查官','很久了。'],['曾子豪｜zeng_normal','還好吧。'],['曾子豪｜zeng_normal','反正成績不要太難看。'],['曾子豪｜zeng_normal','不要又搞到法院。'],['曾子豪｜zeng_normal','他們其實也不太管。'],['少年調查官','你喜歡這樣？'],['曾子豪｜zeng_normal','滿爽的啊。'],['旁白','他停了一下。'],['曾子豪｜zeng_normal','……真的。'],['旁白','你沒有追問。'],['旁白','這一次，他也沒有立刻把話題轉回林澈身上。']];"
+          if old not in s: raise SystemExit('Unable to locate key04TrustExtra block')
+          s=s.replace(old,new)
           s=s.replace("b.innerHTML=`<strong>${String.fromCharCode(65+n)}｜${opt.label}</strong><br>${opt.text}`;","b.innerHTML=`<strong>${String.fromCharCode(65+n)}.</strong> ${opt.text}`;")
           js.write_text(s,encoding='utf-8')
-          index=Path('_site/zeng-route/index.html'); html=index.read_text(encoding='utf-8'); html=re.sub(r'zeng-route\.js\?v=[^"\']+','zeng-route.js?v=key04-2',html); index.write_text(html,encoding='utf-8')
+          index=Path('_site/zeng-route/index.html'); html=index.read_text(encoding='utf-8'); html=re.sub(r'zeng-route\.js\?v=[^"\']+','zeng-route.js?v=key04-3',html); index.write_text(html,encoding='utf-8')
           PY
       - name: Verify Zeng KEY04
         shell: bash
@@ -105,8 +109,11 @@ jobs:
           grep -q '因為這種最難準備答案啊' _site/zeng-route/zeng-route.js
           grep -q '所以你一直都在測我' _site/zeng-route/zeng-route.js
           grep -q '我爸上次去學校' _site/zeng-route/zeng-route.js
+          grep -q '……真的。' _site/zeng-route/zeng-route.js
+          grep -q '你沒有追問。' _site/zeng-route/zeng-route.js
+          grep -q '這一次，他也沒有立刻把話題轉回林澈身上。' _site/zeng-route/zeng-route.js
           grep -q 'ZENG KEY04 COMPLETE' _site/zeng-route/zeng-route.js
-          grep -q 'key04-2' _site/zeng-route/index.html
+          grep -q 'key04-3' _site/zeng-route/index.html
           ! grep -q 'String.fromCharCode(65+n)}｜${opt.label}' _site/zeng-route/zeng-route.js
       - name: Keep GitHub Pages project paths valid
         run: touch _site/.nojekyll
@@ -119,7 +126,7 @@ jobs:
           set -euo pipefail
           rm -rf _site/.git; cd _site; git init; git checkout -b web-snapshot
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A; git commit -m 'Snapshot Zeng KEY04 v3.1'; git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"; git push --force origin web-snapshot
+          git add -A; git commit -m 'Snapshot Zeng KEY04 trust dialogue restored'; git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"; git push --force origin web-snapshot
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
