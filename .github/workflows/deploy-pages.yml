@@ -102,6 +102,8 @@ jobs:
           grep -q '音樂唱到一半，隔壁突然傳來一聲巨響。' _site/zeng-route/zeng-route.js
           grep -q 'ZENG KEY05 COMPLETE' _site/zeng-route/zeng-route.js
           grep -q 'ZENG SERIES COMPLETE' _site/zeng-route/zeng-route.js
+          grep -q 'FRIEND ZENG' _site/zeng-route/zeng-route.js
+          grep -q 'speakerTab' _site/zeng-route/zeng-route.js
           test -s _site/zeng-integration.js
           grep -q 'zeng-route' _site/zeng-integration.js
           grep -q 'zeng-integration.js' _site/index.html
@@ -123,7 +125,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Snapshot integrated Zeng route'
+          git commit -m 'Snapshot integrated Zeng route UI'
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin web-snapshot
 
