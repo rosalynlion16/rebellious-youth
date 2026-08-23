@@ -1,0 +1,109 @@
+name: Deploy Rebellious Youth test site
+
+on:
+  push:
+    branches: [pages-test, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Mirror current game files
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://rebellious-youth-demo.rosalynlion002.chatgpt.site'
+          mkdir -p _site
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            mkdir -p "_site/$(dirname "$file")"
+            echo "Fetching $file"
+            curl --retry 4 --retry-delay 2 --fail --location --silent --show-error \
+              "$BASE/$file" -o "_site/$file" || echo "WARN: missing $file"
+          done < mirror-files.txt
+          test -s _site/index.html
+          test -s _site/_next/static/chunks/page-BFC0CKDW.js
+
+      - name: Patch for GitHub Pages project path
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('_site')
+          base = '/rebellious-youth'
+          prefixes = [
+              '/_next/', '/bgm/', '/scene-assets/', '/owner/', '/rain/',
+              '/trust/', '/family/', '/school/', '/life/', '/resource/', '/true-ending/'
+          ]
+          root_files = ['/favicon.svg','/file.svg','/globe.svg','/window.svg']
+
+          for p in root.rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in {'.html','.js','.css','.json','.svg'}:
+                  continue
+              try:
+                  s = p.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              if p.name == 'index.html':
+                  s = re.sub(r'<script[^>]+kaspersky-labs\\.com[^>]*></script>', '', s)
+                  s = re.sub(r'<link[^>]+kaspersky-labs\\.com[^>]*>', '', s)
+              for pre in prefixes:
+                  s = s.replace(pre, base + pre)
+              for rf in root_files:
+                  s = s.replace(rf, base + rf)
+              p.write_text(s, encoding='utf-8')
+
+          (root / '.nojekyll').write_text('', encoding='utf-8')
+          PY
+
+      - name: Save complete playable snapshot to GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd _site
+          git init
+          git checkout -b web-snapshot
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Snapshot playable web build from rescued v85 site'
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin web-snapshot
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
