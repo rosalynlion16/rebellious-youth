@@ -49,11 +49,12 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           js=Path('_site/true-ending/true-ending.js'); s=js.read_text(encoding='utf-8')
-          for name in ['cg_true01_kapok_call','cg_true02_airport_group','cg_true02_airport_goodbye','lin_23_game_sprite','zeng_23_game_sprite','rain_22_game_sprite']: s=s.replace(name+'.webp',name+'.png')
+          for name in ['cg_true01_kapok_call','cg_true02_airport_group','cg_true02_airport_goodbye','lin_23_game_sprite','zeng_23_game_sprite','rain_22_game_sprite']:
+              s=s.replace(name+'.webp',name+'.png')
           s=s.replace("const AIRPORT=te('bg_airport_departure_day.webp');", "const AIRPORT=te('bg_airport_departure_day.png');").replace("const OWNER=te('supervisor_normal.webp');", "const OWNER=te('shop_master_normal.png');").replace('supervisor_normal.webp','shop_master_normal.png')
           js.write_text(s,encoding='utf-8')
           PY
-      - name: Install Zeng portraits for KEY01 and KEY02
+      - name: Install Zeng portraits for KEY01 to KEY03
         shell: bash
         run: |
           set -euo pipefail
@@ -69,7 +70,8 @@ jobs:
           from PIL import Image
           for p in sorted(Path('_site/character/zeng').glob('*_t2.png')):
               with Image.open(p) as im:
-                  a=im.convert('RGBA').getchannel('A'); lo,hi=a.getextrema(); transparent=sum(1 for x in a.getdata() if x<255); total=im.width*im.height
+                  a=im.convert('RGBA').getchannel('A')
+                  lo,hi=a.getextrema(); transparent=sum(1 for x in a.getdata() if x<255); total=im.width*im.height
                   print(f'{p.name}: alpha=({lo},{hi}), transparent={transparent}/{total}')
                   if transparent==0: raise SystemExit(f'{p}: no transparent pixels')
           PY
@@ -80,27 +82,27 @@ jobs:
           sprite_map="const spriteMap={'zeng_normal':'character/zeng/zeng_normal_t2.png','zeng_polite':'character/zeng/zeng_polite_t2.png','zeng_innocent':'character/zeng/zeng_innocent_t2.png','zeng_happy':'character/zeng/zeng_happy_t2.png','zeng_surprised':'character/zeng/zeng_shock_t2.png','lin_annoyed':'scene-assets/lin-annoyed-transparent.png'};"
           s,count=re.subn(r'const spriteMap=.*?;',sprite_map,s,count=1,flags=re.S)
           if count!=1: raise SystemExit('Unable to locate spriteMap')
-          old="b.innerHTML=`<strong>${String.fromCharCode(65+n)}｜${opt.label}</strong><br>${opt.text}`;"
-          new="b.innerHTML=`<strong>${String.fromCharCode(65+n)}.</strong> ${opt.text}`;"
-          if old not in s: raise SystemExit('Unable to locate choice label renderer')
-          s=s.replace(old,new)
+          # Safety: player-facing choices must show only A/B/C/D plus spoken option text.
+          s=s.replace("b.innerHTML=`<strong>${String.fromCharCode(65+n)}｜${opt.label}</strong><br>${opt.text}`;","b.innerHTML=`<strong>${String.fromCharCode(65+n)}.</strong> ${opt.text}`;")
           js.write_text(s,encoding='utf-8')
-          index=Path('_site/zeng-route/index.html'); html=index.read_text(encoding='utf-8'); html=re.sub(r'zeng-route\.js\?v=[^"\']+','zeng-route.js?v=key02-2',html); index.write_text(html,encoding='utf-8')
+          index=Path('_site/zeng-route/index.html'); html=index.read_text(encoding='utf-8'); html=re.sub(r'zeng-route\.js\?v=[^"\']+','zeng-route.js?v=key03-1',html); index.write_text(html,encoding='utf-8')
           PY
-      - name: Verify Zeng KEY02
+      - name: Verify Zeng KEY03
         shell: bash
         run: |
           set -euo pipefail
           test -s _site/zeng-route/index.html
           test -s _site/zeng-route/zeng-route.js
           test -s _site/character/zeng/zeng_shock_t2.png
-          grep -q 'KEY02｜你是哪種大人' _site/zeng-route/zeng-route.js
-          grep -q '你知道規定幾點以前要回去吧' _site/zeng-route/zeng-route.js
-          grep -q '你爸媽知道嗎？這件事可能要跟他們確認' _site/zeng-route/zeng-route.js
-          grep -q '十一點而已，有平安回去就好' _site/zeng-route/zeng-route.js
-          grep -q '先告訴我，為什麼會到十一點' _site/zeng-route/zeng-route.js
-          grep -q 'zeng_key02_choice' _site/zeng-route/zeng-route.js
-          grep -q 'key02-2' _site/zeng-route/index.html
+          grep -q 'KEY03｜他的事你問他' _site/zeng-route/zeng-route.js
+          grep -q '所以我才不會跟你講' _site/zeng-route/zeng-route.js
+          grep -q '好，那不問他。你最近呢？' _site/zeng-route/zeng-route.js
+          grep -q '我不會叫你替我盯著他' _site/zeng-route/zeng-route.js
+          grep -q '你以後想做什麼' _site/zeng-route/zeng-route.js
+          grep -q '知道了。那就不問。' _site/zeng-route/zeng-route.js
+          grep -q '曾子豪自己，也是正在接受保護管束的十七歲少年' _site/zeng-route/zeng-route.js
+          grep -q 'zeng_key03_choice' _site/zeng-route/zeng-route.js
+          grep -q 'key03-1' _site/zeng-route/index.html
           ! grep -q 'String.fromCharCode(65+n)}｜${opt.label}' _site/zeng-route/zeng-route.js
       - name: Keep GitHub Pages project paths valid
         run: touch _site/.nojekyll
@@ -113,7 +115,7 @@ jobs:
           set -euo pipefail
           rm -rf _site/.git; cd _site; git init; git checkout -b web-snapshot
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A; git commit -m 'Snapshot Zeng KEY02 v3.2'; git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"; git push --force origin web-snapshot
+          git add -A; git commit -m 'Snapshot Zeng KEY03 v3.1'; git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"; git push --force origin web-snapshot
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
