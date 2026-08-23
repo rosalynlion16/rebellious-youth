@@ -106,6 +106,51 @@ jobs:
           p.write_text(s,encoding='utf-8')
           PY
 
+      - name: Repair and verify resource quiz feedback transparency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet pillow
+          python source/fix_quiz_alpha.py
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          for name in ['quiz_correct.png','quiz_wrong.png']:
+              p=Path('_site')/name
+              im=Image.open(p).convert('RGBA')
+              lo,hi=im.getchannel('A').getextrema()
+              print(f'{name}: alpha_range={lo}..{hi}')
+              if lo == 255:
+                  raise SystemExit(f'{name} still has no transparent pixels')
+          PY
+          grep -R -q 'resource-feedback-image' _site/_next/static/chunks/page-*.js
+
+      - name: Install Ending achievement marquee
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp source/ending-achievements.js _site/ending-achievements.js
+          python - <<'PY'
+          from pathlib import Path
+          patched=0
+          needle='Ln.includes(`player_trust_series_complete`)?`信賴系列`:null].filter(Boolean).join(`、`)||`本局沒有完成可播放的系列後日談。`'
+          repl='Ln.includes(`player_trust_series_complete`)?`信賴系列`:null,Sr.includes(`school_series_complete`)?`校園系列`:null].filter(Boolean).join(`、`)||`本局沒有完成可播放的系列後日談。`'
+          for p in Path('_site/_next/static/chunks').glob('page-*.js'):
+              s=p.read_text(encoding='utf-8')
+              if needle in s:
+                  s=s.replace(needle,repl,1)
+                  p.write_text(s,encoding='utf-8')
+                  patched+=1
+          if patched != 1:
+              raise SystemExit(f'Expected 1 ending bundle patch, got {patched}')
+          p=Path('_site/index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="/rebellious-youth/ending-achievements.js?v=1" defer></script>'
+          if 'ending-achievements.js' not in s:
+              s=s.replace('</body>',tag+'</body>')
+          p.write_text(s,encoding='utf-8')
+          PY
+
       - name: Verify Zeng route and main-game integration
         shell: bash
         run: |
@@ -132,6 +177,22 @@ jobs:
           grep -q 'last-weekday-plan' _site/schedule-helper.js
           grep -q 'schedule-helper.js' _site/index.html
 
+      - name: Verify Ending achievements
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s _site/ending-achievements.js
+          grep -q '你成功與少年建立了信任關係' _site/ending-achievements.js
+          grep -q '你成功與曾子豪建立了信任關係' _site/ending-achievements.js
+          grep -q '你成功與店長建立了信任關係' _site/ending-achievements.js
+          grep -q '小雨學會不是每次求救都是徒勞' _site/ending-achievements.js
+          grep -q '林澈重新找回家庭的支柱' _site/ending-achievements.js
+          grep -q '林澈對學習產生興趣' _site/ending-achievements.js
+          grep -q '林澈學會該如何生活' _site/ending-achievements.js
+          grep -q '林澈學會如何面對生活問題並且尋找資源' _site/ending-achievements.js
+          grep -R -q '校園系列' _site/_next/static/chunks/page-*.js
+          grep -q 'ending-achievements.js' _site/index.html
+
       - name: Keep GitHub Pages project paths valid
         run: touch _site/.nojekyll
 
@@ -149,7 +210,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Snapshot Zeng UI and repeat schedule helper'
+          git commit -m 'Snapshot quiz alpha fix and Ending achievement marquee'
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin web-snapshot
 
