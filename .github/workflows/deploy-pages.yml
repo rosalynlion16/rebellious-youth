@@ -74,6 +74,23 @@ jobs:
           cp main-source/zeng/zeng_cold.png _site/character/zeng/zeng_serious_t2.png
           cp main-source/bg_ktv_room_night.png _site/bg_ktv_room_night.png
 
+      - name: Restore Zeng main-game integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error \
+            https://raw.githubusercontent.com/rosalynlion16/rebellious-youth/d97b0e7008822927fdc49449777fff3b17a6d87f/zeng-integration.js \
+            -o _site/zeng-integration.js
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('_site/index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="/rebellious-youth/zeng-integration.js?v=2" defer></script>'
+          if 'zeng-integration.js' not in s:
+              s=s.replace('</body>', tag+'</body>')
+          p.write_text(s,encoding='utf-8')
+          PY
+
       - name: Verify Zeng route and main-game integration
         shell: bash
         run: |
@@ -85,9 +102,9 @@ jobs:
           grep -q '音樂唱到一半，隔壁突然傳來一聲巨響。' _site/zeng-route/zeng-route.js
           grep -q 'ZENG KEY05 COMPLETE' _site/zeng-route/zeng-route.js
           grep -q 'ZENG SERIES COMPLETE' _site/zeng-route/zeng-route.js
-          test -s _site/zeng-main-integration.js
-          grep -q 'zeng-route' _site/zeng-main-integration.js
-          grep -q 'zeng-main-integration.js' _site/index.html
+          test -s _site/zeng-integration.js
+          grep -q 'zeng-route' _site/zeng-integration.js
+          grep -q 'zeng-integration.js' _site/index.html
 
       - name: Keep GitHub Pages project paths valid
         run: touch _site/.nojekyll
