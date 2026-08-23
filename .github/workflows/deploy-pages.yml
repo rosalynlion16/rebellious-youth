@@ -54,7 +54,7 @@ jobs:
           s=s.replace("const AIRPORT=te('bg_airport_departure_day.webp');", "const AIRPORT=te('bg_airport_departure_day.png');").replace("const OWNER=te('supervisor_normal.webp');", "const OWNER=te('shop_master_normal.png');").replace('supervisor_normal.webp','shop_master_normal.png')
           js.write_text(s,encoding='utf-8')
           PY
-      - name: Install Zeng portraits for KEY01 to KEY03
+      - name: Install Zeng portraits for KEY01 to KEY04
         shell: bash
         run: |
           set -euo pipefail
@@ -82,27 +82,28 @@ jobs:
           sprite_map="const spriteMap={'zeng_normal':'character/zeng/zeng_normal_t2.png','zeng_polite':'character/zeng/zeng_polite_t2.png','zeng_innocent':'character/zeng/zeng_innocent_t2.png','zeng_happy':'character/zeng/zeng_happy_t2.png','zeng_surprised':'character/zeng/zeng_shock_t2.png','lin_annoyed':'scene-assets/lin-annoyed-transparent.png'};"
           s,count=re.subn(r'const spriteMap=.*?;',sprite_map,s,count=1,flags=re.S)
           if count!=1: raise SystemExit('Unable to locate spriteMap')
-          # Safety: player-facing choices must show only A/B/C/D plus spoken option text.
+          s=s.replace("['旁白','回答快得像是早就準備好了.']","['旁白','回答快得像是早就準備好了。']")
           s=s.replace("b.innerHTML=`<strong>${String.fromCharCode(65+n)}｜${opt.label}</strong><br>${opt.text}`;","b.innerHTML=`<strong>${String.fromCharCode(65+n)}.</strong> ${opt.text}`;")
           js.write_text(s,encoding='utf-8')
-          index=Path('_site/zeng-route/index.html'); html=index.read_text(encoding='utf-8'); html=re.sub(r'zeng-route\.js\?v=[^"\']+','zeng-route.js?v=key03-1',html); index.write_text(html,encoding='utf-8')
+          index=Path('_site/zeng-route/index.html'); html=index.read_text(encoding='utf-8'); html=re.sub(r'zeng-route\.js\?v=[^"\']+','zeng-route.js?v=key04-1',html); index.write_text(html,encoding='utf-8')
           PY
-      - name: Verify Zeng KEY03
+      - name: Verify Zeng KEY04
         shell: bash
         run: |
           set -euo pipefail
           test -s _site/zeng-route/index.html
           test -s _site/zeng-route/zeng-route.js
           test -s _site/character/zeng/zeng_shock_t2.png
-          grep -q 'KEY03｜他的事你問他' _site/zeng-route/zeng-route.js
-          grep -q '所以我才不會跟你講' _site/zeng-route/zeng-route.js
-          grep -q '好，那不問他。你最近呢？' _site/zeng-route/zeng-route.js
-          grep -q '我不會叫你替我盯著他' _site/zeng-route/zeng-route.js
-          grep -q '你以後想做什麼' _site/zeng-route/zeng-route.js
-          grep -q '知道了。那就不問。' _site/zeng-route/zeng-route.js
-          grep -q '曾子豪自己，也是正在接受保護管束的十七歲少年' _site/zeng-route/zeng-route.js
-          grep -q 'zeng_key03_choice' _site/zeng-route/zeng-route.js
-          grep -q 'key03-1' _site/zeng-route/index.html
+          grep -q 'KEY04｜所以我那時候就知道了' _site/zeng-route/zeng-route.js
+          grep -q 'zeng_key02_choice' _site/zeng-route/zeng-route.js
+          grep -q '你那時候第一句就問我知不知道規定' _site/zeng-route/zeng-route.js
+          grep -q '以後有些事不要跟你講太細' _site/zeng-route/zeng-route.js
+          grep -q '真的出事的時候，我要找的是會處理的人' _site/zeng-route/zeng-route.js
+          grep -q '因為這種最難準備答案啊' _site/zeng-route/zeng-route.js
+          grep -q '所以你一直都在測我' _site/zeng-route/zeng-route.js
+          grep -q '我爸上次去學校' _site/zeng-route/zeng-route.js
+          grep -q 'ZENG KEY04 COMPLETE' _site/zeng-route/zeng-route.js
+          grep -q 'key04-1' _site/zeng-route/index.html
           ! grep -q 'String.fromCharCode(65+n)}｜${opt.label}' _site/zeng-route/zeng-route.js
       - name: Keep GitHub Pages project paths valid
         run: touch _site/.nojekyll
@@ -115,7 +116,7 @@ jobs:
           set -euo pipefail
           rm -rf _site/.git; cd _site; git init; git checkout -b web-snapshot
           git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A; git commit -m 'Snapshot Zeng KEY03 v3.1'; git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"; git push --force origin web-snapshot
+          git add -A; git commit -m 'Snapshot Zeng KEY04 v3.1'; git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"; git push --force origin web-snapshot
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
