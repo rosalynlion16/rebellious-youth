@@ -42,27 +42,59 @@ jobs:
           cp source/zeng_23_game_sprite.png _site/true-ending/zeng_23_game_sprite.png
           cp source/rain_22_game_sprite.png _site/true-ending/rain_22_game_sprite.png
           cp source/shop_master_normal.png _site/true-ending/shop_master_normal.png
+
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/true-ending/true-ending.js')
-          s=p.read_text(encoding='utf-8')
+          import re
+
+          js=Path('_site/true-ending/true-ending.js')
+          s=js.read_text(encoding='utf-8')
           for name in ['cg_true01_kapok_call','cg_true02_airport_group','cg_true02_airport_goodbye','lin_23_game_sprite','zeng_23_game_sprite','rain_22_game_sprite']:
               s=s.replace(name+'.webp',name+'.png')
           s=s.replace('supervisor_normal.webp','shop_master_normal.png')
-          p.write_text(s,encoding='utf-8')
+          js.write_text(s,encoding='utf-8')
+
+          index=Path('_site/index.html')
+          html=index.read_text(encoding='utf-8')
+          html=re.sub(r'true-ending/true-ending\.js\?v=[^"\']+', 'true-ending/true-ending.js?v=130', html)
+          html=re.sub(r'true-ending/true-ending\.css\?v=[^"\']+', 'true-ending/true-ending.css?v=130', html)
+          index.write_text(html,encoding='utf-8')
           PY
+
           file _site/true-ending/*.png
-          test -s _site/true-ending/lin_23_game_sprite.png
-          test -s _site/true-ending/zeng_23_game_sprite.png
-          test -s _site/true-ending/rain_22_game_sprite.png
-          test -s _site/true-ending/shop_master_normal.png
+          test $(stat -c%s _site/true-ending/cg_true01_kapok_call.png) -gt 1000000
+          test $(stat -c%s _site/true-ending/cg_true02_airport_group.png) -gt 1000000
+          test $(stat -c%s _site/true-ending/cg_true02_airport_goodbye.png) -gt 1000000
+          test $(stat -c%s _site/true-ending/lin_23_game_sprite.png) -gt 500000
+          test $(stat -c%s _site/true-ending/zeng_23_game_sprite.png) -gt 500000
+          test $(stat -c%s _site/true-ending/rain_22_game_sprite.png) -gt 500000
+          test $(stat -c%s _site/true-ending/shop_master_normal.png) -gt 500000
+          grep -q 'cg_true01_kapok_call.png' _site/true-ending/true-ending.js
+          grep -q 'true-ending.js?v=130' _site/index.html
 
       - name: Keep GitHub Pages project paths valid
         shell: bash
         run: |
           set -euo pipefail
           touch _site/.nojekyll
-          grep -q '/rebellious-youth/' _site/index.html || true
+
+      - name: Save verified playable snapshot
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _site/.git
+          cd _site
+          git init
+          git checkout -b web-snapshot
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Snapshot with original high-resolution True Ending PNG assets v130'
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin web-snapshot
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
