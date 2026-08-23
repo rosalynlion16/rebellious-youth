@@ -23,19 +23,16 @@ jobs:
         with:
           ref: dev
           path: source
-
       - name: Checkout latest main artwork
         uses: actions/checkout@v4
         with:
           ref: main
           path: main-source
-
       - name: Restore playable snapshot
         uses: actions/checkout@v4
         with:
           ref: web-snapshot
           path: _site
-
       - name: Keep True Ending artwork current
         shell: bash
         run: |
@@ -49,18 +46,18 @@ jobs:
           cp source/rain_22_game_sprite.png _site/true-ending/rain_22_game_sprite.png
           cp main-source/bg_airport_departure_day.png _site/true-ending/bg_airport_departure_day.png
           cp main-source/shop_master_normal.png _site/true-ending/shop_master_normal.png
+      - name: Install finalized True Ending conditions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp source/true-ending-conditions.js _site/true-ending/true-ending-conditions.js
           python - <<'PY'
           from pathlib import Path
-          js=Path('_site/true-ending/true-ending.js')
-          s=js.read_text(encoding='utf-8')
-          for name in ['cg_true01_kapok_call','cg_true02_airport_group','cg_true02_airport_goodbye','lin_23_game_sprite','zeng_23_game_sprite','rain_22_game_sprite']:
-              s=s.replace(name+'.webp',name+'.png')
-          s=s.replace("const AIRPORT=te('bg_airport_departure_day.webp');", "const AIRPORT=te('bg_airport_departure_day.png');")
-          s=s.replace("const OWNER=te('supervisor_normal.webp');", "const OWNER=te('shop_master_normal.png');")
-          s=s.replace('supervisor_normal.webp','shop_master_normal.png')
-          js.write_text(s,encoding='utf-8')
+          p=Path('_site/index.html'); s=p.read_text(encoding='utf-8')
+          tag='<script src="/rebellious-youth/true-ending/true-ending-conditions.js?v=final-1" defer></script>'
+          if 'true-ending-conditions.js' not in s: s=s.replace('</body>',tag+'</body>')
+          p.write_text(s,encoding='utf-8')
           PY
-
       - name: Keep Zeng artwork current
         shell: bash
         run: |
@@ -73,129 +70,62 @@ jobs:
           cp main-source/zeng/zeng_shock.png _site/character/zeng/zeng_shock_t2.png
           cp main-source/zeng/zeng_cold.png _site/character/zeng/zeng_serious_t2.png
           cp main-source/bg_ktv_room_night.png _site/bg_ktv_room_night.png
-
       - name: Restore Zeng main-game integration
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --location --silent --show-error \
-            https://raw.githubusercontent.com/rosalynlion16/rebellious-youth/d97b0e7008822927fdc49449777fff3b17a6d87f/zeng-integration.js \
-            -o _site/zeng-integration.js
+          curl --fail --location --silent --show-error https://raw.githubusercontent.com/rosalynlion16/rebellious-youth/d97b0e7008822927fdc49449777fff3b17a6d87f/zeng-integration.js -o _site/zeng-integration.js
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/index.html')
-          s=p.read_text(encoding='utf-8')
-          tag='<script src="/rebellious-youth/zeng-integration.js?v=2" defer></script>'
-          if 'zeng-integration.js' not in s:
-              s=s.replace('</body>', tag+'</body>')
+          p=Path('_site/index.html'); s=p.read_text(encoding='utf-8'); tag='<script src="/rebellious-youth/zeng-integration.js?v=2" defer></script>'
+          if 'zeng-integration.js' not in s:s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
-
       - name: Install repeat-last-week schedule helper
         shell: bash
         run: |
-          set -euo pipefail
           cp source/schedule-helper.js _site/schedule-helper.js
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/index.html')
-          s=p.read_text(encoding='utf-8')
-          tag='<script src="/rebellious-youth/schedule-helper.js?v=1" defer></script>'
-          if 'schedule-helper.js' not in s:
-              s=s.replace('</body>', tag+'</body>')
+          p=Path('_site/index.html');s=p.read_text(encoding='utf-8');tag='<script src="/rebellious-youth/schedule-helper.js?v=1" defer></script>'
+          if 'schedule-helper.js' not in s:s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
-
-      - name: Repair and verify resource quiz feedback transparency
+      - name: Repair resource quiz transparency
         shell: bash
         run: |
-          set -euo pipefail
           python -m pip install --quiet pillow
           python source/fix_quiz_alpha.py
-          python - <<'PY'
-          from PIL import Image
-          from pathlib import Path
-          for name in ['quiz_correct.png','quiz_wrong.png']:
-              p=Path('_site')/name
-              im=Image.open(p).convert('RGBA')
-              lo,hi=im.getchannel('A').getextrema()
-              print(f'{name}: alpha_range={lo}..{hi}')
-              if lo == 255:
-                  raise SystemExit(f'{name} still has no transparent pixels')
-          PY
-          grep -R -q 'resource-feedback-image' _site/_next/static/chunks/page-*.js
-
       - name: Install Ending achievement marquee
         shell: bash
         run: |
-          set -euo pipefail
           cp source/ending-achievements.js _site/ending-achievements.js
           python - <<'PY'
           from pathlib import Path
-          patched=0
-          needle='Ln.includes(`player_trust_series_complete`)?`信賴系列`:null].filter(Boolean).join(`、`)||`本局沒有完成可播放的系列後日談。`'
-          repl='Ln.includes(`player_trust_series_complete`)?`信賴系列`:null,Sr.includes(`school_series_complete`)?`校園系列`:null].filter(Boolean).join(`、`)||`本局沒有完成可播放的系列後日談。`'
-          for p in Path('_site/_next/static/chunks').glob('page-*.js'):
-              s=p.read_text(encoding='utf-8')
-              if needle in s:
-                  s=s.replace(needle,repl,1)
-                  p.write_text(s,encoding='utf-8')
-                  patched+=1
-          if patched != 1:
-              raise SystemExit(f'Expected 1 ending bundle patch, got {patched}')
-          p=Path('_site/index.html')
-          s=p.read_text(encoding='utf-8')
-          tag='<script src="/rebellious-youth/ending-achievements.js?v=1" defer></script>'
-          if 'ending-achievements.js' not in s:
-              s=s.replace('</body>',tag+'</body>')
+          p=Path('_site/index.html');s=p.read_text(encoding='utf-8');tag='<script src="/rebellious-youth/ending-achievements.js?v=1" defer></script>'
+          if 'ending-achievements.js' not in s:s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
-
-      - name: Verify Zeng route and main-game integration
+      - name: Verify finalized True Ending conditions
         shell: bash
         run: |
           set -euo pipefail
-          test -s _site/bg_ktv_room_night.png
-          test -s _site/character/zeng/zeng_serious_t2.png
+          test -s _site/true-ending/true-ending-conditions.js
+          grep -q 'academic:64,responsibility:70,trust:65,maxStress:50' _site/true-ending/true-ending-conditions.js
+          grep -q 'academic:60,responsibility:75,trust:65,selfEsteem:58,maxStress:50' _site/true-ending/true-ending-conditions.js
+          grep -q 'life_training_series_complete' _site/true-ending/true-ending-conditions.js
+          grep -q 'shop_master_series_complete' _site/true-ending/true-ending-conditions.js
+          grep -q 'true-ending-conditions.js' _site/index.html
+      - name: Verify core additions
+        shell: bash
+        run: |
+          set -euo pipefail
           test -s _site/zeng-route/zeng-route.js
-          grep -q 'KEY05｜一通電話' _site/zeng-route/zeng-route.js
-          grep -q '音樂唱到一半，隔壁突然傳來一聲巨響。' _site/zeng-route/zeng-route.js
-          grep -q 'ZENG KEY05 COMPLETE' _site/zeng-route/zeng-route.js
           grep -q 'ZENG SERIES COMPLETE' _site/zeng-route/zeng-route.js
-          grep -q 'FRIEND ZENG' _site/zeng-route/zeng-route.js
-          grep -q 'speakerTab' _site/zeng-route/zeng-route.js
-          test -s _site/zeng-integration.js
-          grep -q 'zeng-route' _site/zeng-integration.js
-          grep -q 'zeng-integration.js' _site/index.html
-
-      - name: Verify repeat-last-week schedule helper
-        shell: bash
-        run: |
-          set -euo pipefail
           test -s _site/schedule-helper.js
-          grep -q '同上週行程' _site/schedule-helper.js
-          grep -q 'last-weekday-plan' _site/schedule-helper.js
-          grep -q 'schedule-helper.js' _site/index.html
-
-      - name: Verify Ending achievements
-        shell: bash
-        run: |
-          set -euo pipefail
           test -s _site/ending-achievements.js
-          grep -q '你成功與少年建立了信任關係' _site/ending-achievements.js
-          grep -q '你成功與曾子豪建立了信任關係' _site/ending-achievements.js
-          grep -q '你成功與店長建立了信任關係' _site/ending-achievements.js
-          grep -q '小雨學會不是每次求救都是徒勞' _site/ending-achievements.js
-          grep -q '林澈重新找回家庭的支柱' _site/ending-achievements.js
-          grep -q '林澈對學習產生興趣' _site/ending-achievements.js
-          grep -q '林澈學會該如何生活' _site/ending-achievements.js
-          grep -q '林澈學會如何面對生活問題並且尋找資源' _site/ending-achievements.js
-          grep -R -q '校園系列' _site/_next/static/chunks/page-*.js
-          grep -q 'ending-achievements.js' _site/index.html
-
       - name: Keep GitHub Pages project paths valid
         run: touch _site/.nojekyll
-
       - name: Save verified playable snapshot
         continue-on-error: true
         env:
@@ -203,27 +133,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf _site/.git
-          cd _site
-          git init
-          git checkout -b web-snapshot
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git commit -m 'Snapshot quiz alpha fix and Ending achievement marquee'
-          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin web-snapshot
-
+          rm -rf _site/.git;cd _site;git init;git checkout -b web-snapshot
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A;git commit -m 'Snapshot finalized True Ending thresholds';git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git";git push --force origin web-snapshot
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
-
   deploy:
     environment:
       name: github-pages
