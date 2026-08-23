@@ -62,7 +62,7 @@ jobs:
           js.write_text(s,encoding='utf-8')
           PY
 
-      - name: Install latest Zeng character sprites
+      - name: Install latest transparent Zeng character sprites
         shell: bash
         run: |
           set -euo pipefail
@@ -72,8 +72,6 @@ jobs:
           cp main-source/zeng/zeng_innocent.png _site/character/zeng/zeng_innocent.png
           cp main-source/zeng/zeng_happy.png _site/character/zeng/zeng_happy.png
 
-          # Report transparency status, but do not block deployment.
-          # Some current source portraits are valid RGB PNGs without alpha.
           python - <<'PY'
           from pathlib import Path
           for p in Path('_site/character/zeng').glob('*.png'):
@@ -84,7 +82,7 @@ jobs:
               has_alpha=color_type in (4,6) or b'tRNS' in data
               print(f'{p.name}: PNG color_type={color_type}, transparency={has_alpha}, bytes={len(data)}')
               if not has_alpha:
-                  print(f'WARNING: {p.name} has no alpha channel; deploying it unchanged.')
+                  raise SystemExit(f'{p}: NO ALPHA/TRANSPARENCY - please replace with transparent portrait')
           PY
 
           python - <<'PY'
@@ -105,7 +103,7 @@ jobs:
           js.write_text(s, encoding='utf-8')
           index=Path('_site/zeng-route/index.html')
           html=index.read_text(encoding='utf-8')
-          html=re.sub(r'zeng-route\.js\?v=[^"\']+', 'zeng-route.js?v=narration2', html)
+          html=re.sub(r'zeng-route\.js\?v=[^"\']+', 'zeng-route.js?v=narration3', html)
           index.write_text(html,encoding='utf-8')
           PY
 
@@ -123,7 +121,7 @@ jobs:
           grep -q '比較好管的那個' _site/zeng-route/zeng-route.js
           grep -q 'character/zeng/zeng_normal.png' _site/zeng-route/zeng-route.js
           grep -q 'setNarrationBox' _site/zeng-route/zeng-route.js
-          grep -q 'narration2' _site/zeng-route/index.html
+          grep -q 'narration3' _site/zeng-route/index.html
 
       - name: Keep GitHub Pages project paths valid
         shell: bash
@@ -145,7 +143,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Snapshot Zeng KEY01 centered narration deploy fix'
+          git commit -m 'Snapshot Zeng KEY01 with transparent sprites and centered narration'
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin web-snapshot
 
