@@ -70,6 +70,39 @@ jobs:
 
           test -s _site/true-ending/shop_master_normal.png
 
+      - name: Repair Zeng KEY01 portrait references
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The snapshot already contains the alpha PNGs for the shared Zeng
+          # expressions.  Innocent is supplied by the latest artwork branch.
+          cp main-source/zeng/zeng_innocent.png _site/scene-assets/zeng-innocent-transparent.png
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          js = Path('_site/zeng-route/zeng-route.js')
+          s = js.read_text(encoding='utf-8')
+          sprite_map = '''const spriteMap={
+          'zeng_normal':'scene-assets/zeng-normal-transparent.png',
+          'zeng_polite':'scene-assets/zeng-polite-transparent.png',
+          'zeng_innocent':'scene-assets/zeng-innocent-transparent.png',
+          'zeng_happy':'scene-assets/zeng-happy-transparent.png',
+          'lin_annoyed':'scene-assets/lin-annoyed-transparent.png'
+          };'''
+          s, count = re.subn(r'const spriteMap=\{.*?\n\};', sprite_map, s, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit('Unable to locate Zeng spriteMap')
+          js.write_text(s, encoding='utf-8')
+          PY
+
+          test -s _site/scene-assets/zeng-normal-transparent.png
+          test -s _site/scene-assets/zeng-polite-transparent.png
+          test -s _site/scene-assets/zeng-innocent-transparent.png
+          test -s _site/scene-assets/zeng-happy-transparent.png
+          test -s _site/scene-assets/lin-annoyed-transparent.png
+
       - name: Verify Zeng KEY01 route
         shell: bash
         run: |
@@ -78,6 +111,8 @@ jobs:
           test -s _site/zeng-route/zeng-route.js
           grep -q '比較好管的那個' _site/zeng-route/zeng-route.js
           grep -q 'zeng-route.js' _site/zeng-route/index.html
+          grep -q 'zeng-normal-transparent.png' _site/zeng-route/zeng-route.js
+          grep -q 'lin-annoyed-transparent.png' _site/zeng-route/zeng-route.js
 
       - name: Keep GitHub Pages project paths valid
         shell: bash
