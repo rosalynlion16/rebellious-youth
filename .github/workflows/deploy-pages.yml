@@ -67,8 +67,8 @@ jobs:
 
           index=Path('_site/index.html')
           html=index.read_text(encoding='utf-8')
-          html=re.sub(r'true-ending/true-ending\.js\?v=[^"\']+', 'true-ending/true-ending.js?v=131', html)
-          html=re.sub(r'true-ending/true-ending\.css\?v=[^"\']+', 'true-ending/true-ending.css?v=131', html)
+          html=re.sub(r'true-ending/true-ending\.js\?v=[^"\']+', 'true-ending/true-ending.js?v=132', html)
+          html=re.sub(r'true-ending/true-ending\.css\?v=[^"\']+', 'true-ending/true-ending.css?v=132', html)
           index.write_text(html,encoding='utf-8')
           PY
 
@@ -80,10 +80,12 @@ jobs:
           test $(stat -c%s _site/true-ending/lin_23_game_sprite.png) -gt 500000
           test $(stat -c%s _site/true-ending/zeng_23_game_sprite.png) -gt 500000
           test $(stat -c%s _site/true-ending/rain_22_game_sprite.png) -gt 500000
-          test $(stat -c%s _site/true-ending/supervisor_normal.webp) -gt 100000
+          # This original supervisor sprite is intentionally a smaller 399x600 WebP.
+          # Validate that it exists and is a real non-empty asset instead of imposing a 100 KB threshold.
+          test $(stat -c%s _site/true-ending/supervisor_normal.webp) -gt 1000
           grep -q "bg_airport_departure_day.png" _site/true-ending/true-ending.js
           grep -q "supervisor_normal.webp" _site/true-ending/true-ending.js
-          grep -q 'true-ending.js?v=131' _site/index.html
+          grep -q 'true-ending.js?v=132' _site/index.html
 
       - name: Keep GitHub Pages project paths valid
         shell: bash
@@ -105,7 +107,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Snapshot TE02 with updated airport background and supervisor sprite v131'
+          git commit -m 'Snapshot TE02 with updated airport background and supervisor sprite v132'
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin web-snapshot
 
