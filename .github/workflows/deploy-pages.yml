@@ -73,11 +73,8 @@ jobs:
           cp main-source/zeng/zeng_innocent.png _site/character/zeng/zeng_innocent.png
           cp main-source/zeng/zeng_happy.png _site/character/zeng/zeng_happy.png
 
-          # Validate the PNG structure itself. Color type 4 or 6 means an alpha channel;
-          # tRNS also supplies transparency for indexed/RGB PNGs.
           python - <<'PY'
           from pathlib import Path
-          import struct
           files = list(Path('_site/character/zeng').glob('*.png'))
           for p in files:
               data=p.read_bytes()
@@ -108,7 +105,7 @@ jobs:
           js.write_text(s, encoding='utf-8')
           index=Path('_site/zeng-route/index.html')
           html=index.read_text(encoding='utf-8')
-          html=re.sub(r'zeng-route\.js\?v=[^"\']+', 'zeng-route.js?v=character2', html)
+          html=re.sub(r'zeng-route\.js\?v=[^"\']+', 'zeng-route.js?v=narration1', html)
           index.write_text(html,encoding='utf-8')
           PY
 
@@ -125,7 +122,8 @@ jobs:
           test -s _site/scene-assets/lin-annoyed-transparent.png
           grep -q '比較好管的那個' _site/zeng-route/zeng-route.js
           grep -q 'character/zeng/zeng_normal.png' _site/zeng-route/zeng-route.js
-          grep -q 'character2' _site/zeng-route/index.html
+          grep -q 'setNarrationBox' _site/zeng-route/zeng-route.js
+          grep -q 'narration1' _site/zeng-route/index.html
 
       - name: Keep GitHub Pages project paths valid
         shell: bash
@@ -147,7 +145,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Snapshot Zeng KEY01 with latest character sprites'
+          git commit -m 'Snapshot Zeng KEY01 with centered narration'
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin web-snapshot
 
