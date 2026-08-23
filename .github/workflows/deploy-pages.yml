@@ -24,6 +24,12 @@ jobs:
           ref: dev
           path: source
 
+      - name: Checkout latest main artwork
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-source
+
       - name: Restore playable snapshot
         uses: actions/checkout@v4
         with:
@@ -41,7 +47,10 @@ jobs:
           cp source/lin_23_game_sprite.png _site/true-ending/lin_23_game_sprite.png
           cp source/zeng_23_game_sprite.png _site/true-ending/zeng_23_game_sprite.png
           cp source/rain_22_game_sprite.png _site/true-ending/rain_22_game_sprite.png
-          cp source/shop_master_normal.png _site/true-ending/shop_master_normal.png
+          cp main-source/bg_airport_departure_day.png _site/true-ending/bg_airport_departure_day.png
+
+          # supervisor_normal.webp is already part of the verified playable snapshot.
+          test -s _site/true-ending/supervisor_normal.webp
 
           python - <<'PY'
           from pathlib import Path
@@ -51,26 +60,30 @@ jobs:
           s=js.read_text(encoding='utf-8')
           for name in ['cg_true01_kapok_call','cg_true02_airport_group','cg_true02_airport_goodbye','lin_23_game_sprite','zeng_23_game_sprite','rain_22_game_sprite']:
               s=s.replace(name+'.webp',name+'.png')
-          s=s.replace('supervisor_normal.webp','shop_master_normal.png')
+          s=s.replace("const AIRPORT=te('bg_airport_departure_day.webp');", "const AIRPORT=te('bg_airport_departure_day.png');")
+          s=s.replace("const OWNER=te('shop_master_normal.png');", "const OWNER=te('supervisor_normal.webp');")
+          s=s.replace('shop_master_normal.png','supervisor_normal.webp')
           js.write_text(s,encoding='utf-8')
 
           index=Path('_site/index.html')
           html=index.read_text(encoding='utf-8')
-          html=re.sub(r'true-ending/true-ending\.js\?v=[^"\']+', 'true-ending/true-ending.js?v=130', html)
-          html=re.sub(r'true-ending/true-ending\.css\?v=[^"\']+', 'true-ending/true-ending.css?v=130', html)
+          html=re.sub(r'true-ending/true-ending\.js\?v=[^"\']+', 'true-ending/true-ending.js?v=131', html)
+          html=re.sub(r'true-ending/true-ending\.css\?v=[^"\']+', 'true-ending/true-ending.css?v=131', html)
           index.write_text(html,encoding='utf-8')
           PY
 
-          file _site/true-ending/*.png
+          file _site/true-ending/*.png _site/true-ending/supervisor_normal.webp
           test $(stat -c%s _site/true-ending/cg_true01_kapok_call.png) -gt 1000000
           test $(stat -c%s _site/true-ending/cg_true02_airport_group.png) -gt 1000000
           test $(stat -c%s _site/true-ending/cg_true02_airport_goodbye.png) -gt 1000000
+          test $(stat -c%s _site/true-ending/bg_airport_departure_day.png) -gt 1000000
           test $(stat -c%s _site/true-ending/lin_23_game_sprite.png) -gt 500000
           test $(stat -c%s _site/true-ending/zeng_23_game_sprite.png) -gt 500000
           test $(stat -c%s _site/true-ending/rain_22_game_sprite.png) -gt 500000
-          test $(stat -c%s _site/true-ending/shop_master_normal.png) -gt 500000
-          grep -q 'cg_true01_kapok_call.png' _site/true-ending/true-ending.js
-          grep -q 'true-ending.js?v=130' _site/index.html
+          test $(stat -c%s _site/true-ending/supervisor_normal.webp) -gt 100000
+          grep -q "bg_airport_departure_day.png" _site/true-ending/true-ending.js
+          grep -q "supervisor_normal.webp" _site/true-ending/true-ending.js
+          grep -q 'true-ending.js?v=131' _site/index.html
 
       - name: Keep GitHub Pages project paths valid
         shell: bash
@@ -92,7 +105,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Snapshot with original high-resolution True Ending PNG assets v130'
+          git commit -m 'Snapshot TE02 with updated airport background and supervisor sprite v131'
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin web-snapshot
 
