@@ -23,19 +23,16 @@ jobs:
         with:
           ref: dev
           path: source
-
       - name: Checkout latest main artwork
         uses: actions/checkout@v4
         with:
           ref: main
           path: main-source
-
       - name: Restore playable snapshot
         uses: actions/checkout@v4
         with:
           ref: web-snapshot
           path: _site
-
       - name: Keep True Ending artwork current
         shell: bash
         run: |
@@ -49,20 +46,14 @@ jobs:
           cp source/rain_22_game_sprite.png _site/true-ending/rain_22_game_sprite.png
           cp main-source/bg_airport_departure_day.png _site/true-ending/bg_airport_departure_day.png
           cp main-source/shop_master_normal.png _site/true-ending/shop_master_normal.png
-
           python - <<'PY'
           from pathlib import Path
-          js=Path('_site/true-ending/true-ending.js')
-          s=js.read_text(encoding='utf-8')
-          for name in ['cg_true01_kapok_call','cg_true02_airport_group','cg_true02_airport_goodbye','lin_23_game_sprite','zeng_23_game_sprite','rain_22_game_sprite']:
-              s=s.replace(name+'.webp',name+'.png')
-          s=s.replace("const AIRPORT=te('bg_airport_departure_day.webp');", "const AIRPORT=te('bg_airport_departure_day.png');")
-          s=s.replace("const OWNER=te('supervisor_normal.webp');", "const OWNER=te('shop_master_normal.png');")
-          s=s.replace('supervisor_normal.webp','shop_master_normal.png')
+          js=Path('_site/true-ending/true-ending.js'); s=js.read_text(encoding='utf-8')
+          for name in ['cg_true01_kapok_call','cg_true02_airport_group','cg_true02_airport_goodbye','lin_23_game_sprite','zeng_23_game_sprite','rain_22_game_sprite']: s=s.replace(name+'.webp',name+'.png')
+          s=s.replace("const AIRPORT=te('bg_airport_departure_day.webp');", "const AIRPORT=te('bg_airport_departure_day.png');").replace("const OWNER=te('supervisor_normal.webp');", "const OWNER=te('shop_master_normal.png');").replace('supervisor_normal.webp','shop_master_normal.png')
           js.write_text(s,encoding='utf-8')
           PY
-
-      - name: Install fresh Zeng portraits with cache-busted names
+      - name: Install Zeng portraits for KEY01 and KEY02
         shell: bash
         run: |
           set -euo pipefail
@@ -71,70 +62,43 @@ jobs:
           cp main-source/zeng/zeng_polite.png _site/character/zeng/zeng_polite_t2.png
           cp main-source/zeng/zeng_innocent.png _site/character/zeng/zeng_innocent_t2.png
           cp main-source/zeng/zeng_happy.png _site/character/zeng/zeng_happy_t2.png
-
+          cp main-source/zeng/zeng_shock.png _site/character/zeng/zeng_shock_t2.png
           python -m pip install --quiet pillow
           python - <<'PY'
           from pathlib import Path
           from PIL import Image
-
           for p in sorted(Path('_site/character/zeng').glob('*_t2.png')):
               with Image.open(p) as im:
-                  rgba = im.convert('RGBA')
-                  alpha = rgba.getchannel('A')
-                  lo, hi = alpha.getextrema()
-                  transparent = sum(1 for a in alpha.getdata() if a < 255)
-                  total = rgba.width * rgba.height
-                  ratio = transparent / total
-                  print(f'{p.name}: size={rgba.size}, alpha_range=({lo},{hi}), transparent_pixels={transparent}/{total} ({ratio:.2%})')
-                  if lo == 255 or transparent == 0:
-                      raise SystemExit(f'{p}: alpha channel exists but contains NO transparent pixels')
+                  a=im.convert('RGBA').getchannel('A'); lo,hi=a.getextrema(); transparent=sum(1 for x in a.getdata() if x<255); total=im.width*im.height
+                  print(f'{p.name}: alpha=({lo},{hi}), transparent={transparent}/{total}')
+                  if transparent==0: raise SystemExit(f'{p}: no transparent pixels')
           PY
-
           python - <<'PY'
           from pathlib import Path
           import re
-          js=Path('_site/zeng-route/zeng-route.js')
-          s=js.read_text(encoding='utf-8')
-          sprite_map = '''const spriteMap={
-          'zeng_normal':'character/zeng/zeng_normal_t2.png',
-          'zeng_polite':'character/zeng/zeng_polite_t2.png',
-          'zeng_innocent':'character/zeng/zeng_innocent_t2.png',
-          'zeng_happy':'character/zeng/zeng_happy_t2.png',
-          'lin_annoyed':'scene-assets/lin-annoyed-transparent.png'
-          };'''
-          s, count = re.subn(r'const spriteMap=\{.*?\n\};', sprite_map, s, count=1, flags=re.S)
-          if count != 1:
-              raise SystemExit('Unable to locate Zeng spriteMap')
-          js.write_text(s, encoding='utf-8')
-
-          index=Path('_site/zeng-route/index.html')
-          html=index.read_text(encoding='utf-8')
-          html=re.sub(r'zeng-route\.js\?v=[^"\']+', 'zeng-route.js?v=transparent4', html)
-          index.write_text(html,encoding='utf-8')
+          js=Path('_site/zeng-route/zeng-route.js'); s=js.read_text(encoding='utf-8')
+          sprite_map="const spriteMap={'zeng_normal':'character/zeng/zeng_normal_t2.png','zeng_polite':'character/zeng/zeng_polite_t2.png','zeng_innocent':'character/zeng/zeng_innocent_t2.png','zeng_happy':'character/zeng/zeng_happy_t2.png','zeng_surprised':'character/zeng/zeng_shock_t2.png','lin_annoyed':'scene-assets/lin-annoyed-transparent.png'};"
+          s,count=re.subn(r'const spriteMap=.*?;',sprite_map,s,count=1,flags=re.S)
+          if count!=1: raise SystemExit('Unable to locate spriteMap')
+          js.write_text(s,encoding='utf-8')
+          index=Path('_site/zeng-route/index.html'); html=index.read_text(encoding='utf-8'); html=re.sub(r'zeng-route\.js\?v=[^"\']+','zeng-route.js?v=key02-1',html); index.write_text(html,encoding='utf-8')
           PY
-
-      - name: Verify Zeng KEY01 route
+      - name: Verify Zeng KEY02
         shell: bash
         run: |
           set -euo pipefail
           test -s _site/zeng-route/index.html
           test -s _site/zeng-route/zeng-route.js
-          test -s _site/character/zeng/zeng_normal_t2.png
-          test -s _site/character/zeng/zeng_polite_t2.png
-          test -s _site/character/zeng/zeng_innocent_t2.png
-          test -s _site/character/zeng/zeng_happy_t2.png
-          test -s _site/scene-assets/lin-annoyed-transparent.png
-          grep -q '比較好管的那個' _site/zeng-route/zeng-route.js
-          grep -q 'zeng_normal_t2.png' _site/zeng-route/zeng-route.js
-          grep -q 'setNarrationBox' _site/zeng-route/zeng-route.js
-          grep -q 'transparent4' _site/zeng-route/index.html
-
+          test -s _site/character/zeng/zeng_shock_t2.png
+          grep -q 'KEY02｜你是哪種大人' _site/zeng-route/zeng-route.js
+          grep -q '你知道規定幾點以前要回去吧' _site/zeng-route/zeng-route.js
+          grep -q '你爸媽知道嗎？這件事可能要跟他們確認' _site/zeng-route/zeng-route.js
+          grep -q '十一點而已，有平安回去就好' _site/zeng-route/zeng-route.js
+          grep -q '先告訴我，為什麼會到十一點' _site/zeng-route/zeng-route.js
+          grep -q 'zeng_key02_choice' _site/zeng-route/zeng-route.js
+          grep -q 'key02-1' _site/zeng-route/index.html
       - name: Keep GitHub Pages project paths valid
-        shell: bash
-        run: |
-          set -euo pipefail
-          touch _site/.nojekyll
-
+        run: touch _site/.nojekyll
       - name: Save verified playable snapshot
         continue-on-error: true
         env:
@@ -142,27 +106,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf _site/.git
-          cd _site
-          git init
-          git checkout -b web-snapshot
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git commit -m 'Snapshot Zeng KEY01 real transparency cache bust'
-          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin web-snapshot
-
+          rm -rf _site/.git; cd _site; git init; git checkout -b web-snapshot
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A; git commit -m 'Snapshot Zeng KEY02 v3.1'; git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"; git push --force origin web-snapshot
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
-
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
-
   deploy:
     environment:
       name: github-pages
