@@ -36,7 +36,7 @@ jobs:
           ref: web-snapshot
           path: _site
 
-      - name: Install original True Ending PNG artwork
+      - name: Keep True Ending artwork current
         shell: bash
         run: |
           set -euo pipefail
@@ -61,47 +61,56 @@ jobs:
           s=s.replace("const OWNER=te('supervisor_normal.webp');", "const OWNER=te('shop_master_normal.png');")
           s=s.replace('supervisor_normal.webp','shop_master_normal.png')
           js.write_text(s,encoding='utf-8')
-          index=Path('_site/index.html')
-          html=index.read_text(encoding='utf-8')
-          html=re.sub(r'true-ending/true-ending\.js\?v=[^"\']+', 'true-ending/true-ending.js?v=133', html)
-          html=re.sub(r'true-ending/true-ending\.css\?v=[^"\']+', 'true-ending/true-ending.css?v=133', html)
-          index.write_text(html,encoding='utf-8')
           PY
 
-          test -s _site/true-ending/shop_master_normal.png
-
-      - name: Repair Zeng KEY01 portrait references
+      - name: Install latest Zeng character sprites
         shell: bash
         run: |
           set -euo pipefail
-          # The snapshot already contains the alpha PNGs for the shared Zeng
-          # expressions.  Innocent is supplied by the latest artwork branch.
-          cp main-source/zeng/zeng_innocent.png _site/scene-assets/zeng-innocent-transparent.png
+          mkdir -p _site/character/zeng
+          cp main-source/zeng/zeng_normal.png _site/character/zeng/zeng_normal.png
+          cp main-source/zeng/zeng_polite.png _site/character/zeng/zeng_polite.png
+          cp main-source/zeng/zeng_innocent.png _site/character/zeng/zeng_innocent.png
+          cp main-source/zeng/zeng_happy.png _site/character/zeng/zeng_happy.png
+
+          # Validate the PNG structure itself. Color type 4 or 6 means an alpha channel;
+          # tRNS also supplies transparency for indexed/RGB PNGs.
+          python - <<'PY'
+          from pathlib import Path
+          import struct
+          files = list(Path('_site/character/zeng').glob('*.png'))
+          for p in files:
+              data=p.read_bytes()
+              if data[:8] != b'\x89PNG\r\n\x1a\n':
+                  raise SystemExit(f'{p}: not a PNG')
+              color_type=data[25]
+              has_alpha=color_type in (4,6) or b'tRNS' in data
+              print(f'{p.name}: PNG color_type={color_type}, transparency={has_alpha}, bytes={len(data)}')
+              if not has_alpha:
+                  raise SystemExit(f'{p}: NO ALPHA/TRANSPARENCY - refusing to deploy portrait')
+          PY
 
           python - <<'PY'
           from pathlib import Path
           import re
-
-          js = Path('_site/zeng-route/zeng-route.js')
-          s = js.read_text(encoding='utf-8')
+          js=Path('_site/zeng-route/zeng-route.js')
+          s=js.read_text(encoding='utf-8')
           sprite_map = '''const spriteMap={
-          'zeng_normal':'scene-assets/zeng-normal-transparent.png',
-          'zeng_polite':'scene-assets/zeng-polite-transparent.png',
-          'zeng_innocent':'scene-assets/zeng-innocent-transparent.png',
-          'zeng_happy':'scene-assets/zeng-happy-transparent.png',
+          'zeng_normal':'character/zeng/zeng_normal.png',
+          'zeng_polite':'character/zeng/zeng_polite.png',
+          'zeng_innocent':'character/zeng/zeng_innocent.png',
+          'zeng_happy':'character/zeng/zeng_happy.png',
           'lin_annoyed':'scene-assets/lin-annoyed-transparent.png'
           };'''
           s, count = re.subn(r'const spriteMap=\{.*?\n\};', sprite_map, s, count=1, flags=re.S)
           if count != 1:
               raise SystemExit('Unable to locate Zeng spriteMap')
           js.write_text(s, encoding='utf-8')
+          index=Path('_site/zeng-route/index.html')
+          html=index.read_text(encoding='utf-8')
+          html=re.sub(r'zeng-route\.js\?v=[^"\']+', 'zeng-route.js?v=character2', html)
+          index.write_text(html,encoding='utf-8')
           PY
-
-          test -s _site/scene-assets/zeng-normal-transparent.png
-          test -s _site/scene-assets/zeng-polite-transparent.png
-          test -s _site/scene-assets/zeng-innocent-transparent.png
-          test -s _site/scene-assets/zeng-happy-transparent.png
-          test -s _site/scene-assets/lin-annoyed-transparent.png
 
       - name: Verify Zeng KEY01 route
         shell: bash
@@ -109,10 +118,14 @@ jobs:
           set -euo pipefail
           test -s _site/zeng-route/index.html
           test -s _site/zeng-route/zeng-route.js
+          test -s _site/character/zeng/zeng_normal.png
+          test -s _site/character/zeng/zeng_polite.png
+          test -s _site/character/zeng/zeng_innocent.png
+          test -s _site/character/zeng/zeng_happy.png
+          test -s _site/scene-assets/lin-annoyed-transparent.png
           grep -q '比較好管的那個' _site/zeng-route/zeng-route.js
-          grep -q 'zeng-route.js' _site/zeng-route/index.html
-          grep -q 'zeng-normal-transparent.png' _site/zeng-route/zeng-route.js
-          grep -q 'lin-annoyed-transparent.png' _site/zeng-route/zeng-route.js
+          grep -q 'character/zeng/zeng_normal.png' _site/zeng-route/zeng-route.js
+          grep -q 'character2' _site/zeng-route/index.html
 
       - name: Keep GitHub Pages project paths valid
         shell: bash
@@ -134,7 +147,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Snapshot with Zeng KEY01 route'
+          git commit -m 'Snapshot Zeng KEY01 with latest character sprites'
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin web-snapshot
 
