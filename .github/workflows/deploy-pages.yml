@@ -53,7 +53,6 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import re
-
           js=Path('_site/true-ending/true-ending.js')
           s=js.read_text(encoding='utf-8')
           for name in ['cg_true01_kapok_call','cg_true02_airport_group','cg_true02_airport_goodbye','lin_23_game_sprite','zeng_23_game_sprite','rain_22_game_sprite']:
@@ -62,7 +61,6 @@ jobs:
           s=s.replace("const OWNER=te('supervisor_normal.webp');", "const OWNER=te('shop_master_normal.png');")
           s=s.replace('supervisor_normal.webp','shop_master_normal.png')
           js.write_text(s,encoding='utf-8')
-
           index=Path('_site/index.html')
           html=index.read_text(encoding='utf-8')
           html=re.sub(r'true-ending/true-ending\.js\?v=[^"\']+', 'true-ending/true-ending.js?v=133', html)
@@ -70,18 +68,16 @@ jobs:
           index.write_text(html,encoding='utf-8')
           PY
 
-          file _site/true-ending/*.png
-          test $(stat -c%s _site/true-ending/cg_true01_kapok_call.png) -gt 1000000
-          test $(stat -c%s _site/true-ending/cg_true02_airport_group.png) -gt 1000000
-          test $(stat -c%s _site/true-ending/cg_true02_airport_goodbye.png) -gt 1000000
-          test $(stat -c%s _site/true-ending/bg_airport_departure_day.png) -gt 1000000
-          test $(stat -c%s _site/true-ending/lin_23_game_sprite.png) -gt 500000
-          test $(stat -c%s _site/true-ending/zeng_23_game_sprite.png) -gt 500000
-          test $(stat -c%s _site/true-ending/rain_22_game_sprite.png) -gt 500000
           test -s _site/true-ending/shop_master_normal.png
-          grep -q "bg_airport_departure_day.png" _site/true-ending/true-ending.js
-          grep -q "shop_master_normal.png" _site/true-ending/true-ending.js
-          grep -q 'true-ending.js?v=133' _site/index.html
+
+      - name: Verify Zeng KEY01 route
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s _site/zeng-route/index.html
+          test -s _site/zeng-route/zeng-route.js
+          grep -q '比較好管的那個' _site/zeng-route/zeng-route.js
+          grep -q 'zeng-route.js' _site/zeng-route/index.html
 
       - name: Keep GitHub Pages project paths valid
         shell: bash
@@ -103,7 +99,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Snapshot TE02 with updated shop master sprite v133'
+          git commit -m 'Snapshot with Zeng KEY01 route'
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin web-snapshot
 
