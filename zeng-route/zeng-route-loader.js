@@ -1,0 +1,1 @@
+(()=>{const q=new URLSearchParams(location.search);if(!q.has('zeng'))return;const s=document.createElement('script');s.src='/rebellious-youth/zeng-route/zeng-route.js?v=1';document.head.appendChild(s);})();
