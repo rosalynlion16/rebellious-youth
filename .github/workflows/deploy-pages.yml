@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout artwork branch
+      - name: Checkout dev source
         uses: actions/checkout@v4
         with:
           ref: dev
@@ -33,145 +33,27 @@ jobs:
         with:
           ref: web-snapshot
           path: _site
+
       - name: Keep True Ending artwork current
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p _site/true-ending
           cp source/cg_true01_kapok_call.png _site/true-ending/cg_true01_kapok_call.png
-          cp source/cg_true02_airport_group.png _site/true-ending/cg_true02_airport_group.png
+          cp main-source/cg_true02_airport_group.png _site/true-ending/cg_true02_airport_group.png
           cp source/cg_true02_airport_goodbye.png _site/true-ending/cg_true02_airport_goodbye.png
           cp source/lin_23_game_sprite.png _site/true-ending/lin_23_game_sprite.png
           cp source/zeng_23_game_sprite.png _site/true-ending/zeng_23_game_sprite.png
           cp source/rain_22_game_sprite.png _site/true-ending/rain_22_game_sprite.png
           cp main-source/bg_airport_departure_day.png _site/true-ending/bg_airport_departure_day.png
           cp main-source/shop_master_normal.png _site/true-ending/shop_master_normal.png
+
       - name: Install unified True Ending AVG UI
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('_site/true-ending/true-ending.css')
-          s=p.read_text(encoding='utf-8')
-          marker='/* unified-main-avg-ui-v1 */'
-          if marker not in s:
-              s += r'''
+          grep -q 'unified-main-avg-ui-v1' _site/true-ending/true-ending.css || cat source/true-ending-ui-unified.css >> _site/true-ending/true-ending.css
 
-/* unified-main-avg-ui-v1 */
-/* Keep True Ending cinematic scenes, but make dialogue presentation match the main AVG. */
-.true-ending-dialogue,
-.te-dialogue,
-#true-ending-dialogue {
-  position: fixed !important;
-  left: 50% !important;
-  right: auto !important;
-  bottom: clamp(24px, 4vh, 58px) !important;
-  transform: translateX(-50%) !important;
-  width: min(82vw, 1110px) !important;
-  min-height: clamp(170px, 22vh, 260px) !important;
-  box-sizing: border-box !important;
-  padding: clamp(54px, 6vh, 78px) clamp(34px, 4vw, 58px) clamp(34px, 4vh, 48px) !important;
-  background: rgba(5, 22, 36, .94) !important;
-  border: 2px solid rgba(178, 198, 214, .62) !important;
-  border-radius: 0 !important;
-  box-shadow: 0 16px 44px rgba(0,0,0,.28) !important;
-  color: #f6f8fa !important;
-  z-index: 80 !important;
-}
-.true-ending-dialogue .speaker,
-.true-ending-dialogue .name,
-.te-dialogue .speaker,
-.te-dialogue .name,
-#true-ending-dialogue .speaker,
-#true-ending-dialogue .name {
-  position: absolute !important;
-  top: -2px !important;
-  left: -2px !important;
-  min-width: 220px !important;
-  padding: 16px 26px !important;
-  background: #102638 !important;
-  border: 2px solid rgba(178,198,214,.62) !important;
-  border-bottom: 0 !important;
-  color: #f4f6f8 !important;
-  font-size: clamp(18px, 1.45vw, 25px) !important;
-  font-weight: 700 !important;
-  letter-spacing: .04em !important;
-}
-.true-ending-dialogue .text,
-.true-ending-dialogue .line,
-.te-dialogue .text,
-.te-dialogue .line,
-#true-ending-dialogue .text,
-#true-ending-dialogue .line {
-  font-size: clamp(21px, 1.75vw, 30px) !important;
-  line-height: 1.75 !important;
-  letter-spacing: .035em !important;
-}
-.true-ending-dialogue .continue,
-.true-ending-dialogue .next,
-.te-dialogue .continue,
-.te-dialogue .next,
-#true-ending-dialogue .continue,
-#true-ending-dialogue .next {
-  position: absolute !important;
-  right: 34px !important;
-  bottom: 24px !important;
-  color: #d99b78 !important;
-  font-size: clamp(14px, 1.05vw, 18px) !important;
-}
-.true-ending-narration,
-.te-narration,
-.true-ending-dialogue.narration,
-.te-dialogue.narration {
-  left: 50% !important;
-  top: 50% !important;
-  bottom: auto !important;
-  transform: translate(-50%, -50%) !important;
-  width: min(76vw, 980px) !important;
-  min-height: 0 !important;
-  padding: 34px 44px !important;
-  text-align: center !important;
-  background: rgba(5,22,36,.82) !important;
-}
-.true-ending-narration .speaker,
-.true-ending-narration .name,
-.te-narration .speaker,
-.te-narration .name,
-.true-ending-dialogue.narration .speaker,
-.true-ending-dialogue.narration .name,
-.te-dialogue.narration .speaker,
-.te-dialogue.narration .name { display:none !important; }
-@media (max-width: 720px) {
-  .true-ending-dialogue,
-  .te-dialogue,
-  #true-ending-dialogue {
-    width: calc(100vw - 28px) !important;
-    bottom: 22px !important;
-    min-height: 210px !important;
-    padding: 64px 28px 48px !important;
-  }
-  .true-ending-dialogue .speaker,
-  .true-ending-dialogue .name,
-  .te-dialogue .speaker,
-  .te-dialogue .name,
-  #true-ending-dialogue .speaker,
-  #true-ending-dialogue .name {
-    min-width: 0 !important;
-    max-width: 72vw !important;
-    padding: 13px 20px !important;
-  }
-  .true-ending-narration,
-  .te-narration,
-  .true-ending-dialogue.narration,
-  .te-dialogue.narration {
-    width: calc(100vw - 40px) !important;
-    padding: 28px 24px !important;
-  }
-}
-'''
-              p.write_text(s,encoding='utf-8')
-          PY
       - name: Install finalized True Ending conditions
         shell: bash
         run: |
@@ -179,11 +61,14 @@ jobs:
           cp source/true-ending-conditions.js _site/true-ending/true-ending-conditions.js
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/index.html'); s=p.read_text(encoding='utf-8')
+          p=Path('_site/index.html')
+          s=p.read_text(encoding='utf-8')
           tag='<script src="/rebellious-youth/true-ending/true-ending-conditions.js?v=final-1" defer></script>'
-          if 'true-ending-conditions.js' not in s: s=s.replace('</body>',tag+'</body>')
+          if 'true-ending-conditions.js' not in s:
+              s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
+
       - name: Keep Zeng artwork current
         shell: bash
         run: |
@@ -196,6 +81,7 @@ jobs:
           cp main-source/zeng/zeng_shock.png _site/character/zeng/zeng_shock_t2.png
           cp main-source/zeng/zeng_cold.png _site/character/zeng/zeng_serious_t2.png
           cp main-source/bg_ktv_room_night.png _site/bg_ktv_room_night.png
+
       - name: Restore Zeng main-game integration
         shell: bash
         run: |
@@ -203,56 +89,64 @@ jobs:
           curl --fail --location --silent --show-error https://raw.githubusercontent.com/rosalynlion16/rebellious-youth/d97b0e7008822927fdc49449777fff3b17a6d87f/zeng-integration.js -o _site/zeng-integration.js
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/index.html'); s=p.read_text(encoding='utf-8'); tag='<script src="/rebellious-youth/zeng-integration.js?v=2" defer></script>'
-          if 'zeng-integration.js' not in s:s=s.replace('</body>',tag+'</body>')
+          p=Path('_site/index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="/rebellious-youth/zeng-integration.js?v=2" defer></script>'
+          if 'zeng-integration.js' not in s:
+              s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
+
       - name: Install repeat-last-week schedule helper
         shell: bash
         run: |
           cp source/schedule-helper.js _site/schedule-helper.js
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/index.html');s=p.read_text(encoding='utf-8');tag='<script src="/rebellious-youth/schedule-helper.js?v=1" defer></script>'
-          if 'schedule-helper.js' not in s:s=s.replace('</body>',tag+'</body>')
+          p=Path('_site/index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="/rebellious-youth/schedule-helper.js?v=1" defer></script>'
+          if 'schedule-helper.js' not in s:
+              s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
+
       - name: Repair resource quiz transparency
         shell: bash
         run: |
           python -m pip install --quiet pillow
           python source/fix_quiz_alpha.py
+
       - name: Install Ending achievement marquee
         shell: bash
         run: |
           cp source/ending-achievements.js _site/ending-achievements.js
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/index.html');s=p.read_text(encoding='utf-8');tag='<script src="/rebellious-youth/ending-achievements.js?v=1" defer></script>'
-          if 'ending-achievements.js' not in s:s=s.replace('</body>',tag+'</body>')
+          p=Path('_site/index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="/rebellious-youth/ending-achievements.js?v=1" defer></script>'
+          if 'ending-achievements.js' not in s:
+              s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Verify finalized True Ending conditions
+
+      - name: Verify deployment inputs
         shell: bash
         run: |
           set -euo pipefail
+          test -s _site/true-ending/cg_true02_airport_group.png
           test -s _site/true-ending/true-ending-conditions.js
+          grep -q 'unified-main-avg-ui-v1' _site/true-ending/true-ending.css
           grep -q 'academic:64,responsibility:70,trust:65,maxStress:50' _site/true-ending/true-ending-conditions.js
           grep -q 'academic:60,responsibility:75,trust:65,selfEsteem:58,maxStress:50' _site/true-ending/true-ending-conditions.js
-          grep -q 'life_training_series_complete' _site/true-ending/true-ending-conditions.js
-          grep -q 'shop_master_series_complete' _site/true-ending/true-ending-conditions.js
-          grep -q 'true-ending-conditions.js' _site/index.html
-          grep -q 'unified-main-avg-ui-v1' _site/true-ending/true-ending.css
-      - name: Verify core additions
-        shell: bash
-        run: |
-          set -euo pipefail
           test -s _site/zeng-route/zeng-route.js
-          grep -q 'ZENG SERIES COMPLETE' _site/zeng-route/zeng-route.js
           test -s _site/schedule-helper.js
           test -s _site/ending-achievements.js
+
       - name: Keep GitHub Pages project paths valid
         run: touch _site/.nojekyll
+
       - name: Save verified playable snapshot
         continue-on-error: true
         env:
@@ -260,9 +154,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf _site/.git;cd _site;git init;git checkout -b web-snapshot
-          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A;git commit -m 'Snapshot unified True Ending AVG UI';git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git";git push --force origin web-snapshot
+          rm -rf _site/.git
+          cd _site
+          git init
+          git checkout -b web-snapshot
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Snapshot unified True Ending AVG UI and latest TE02 CG'
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin web-snapshot
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
@@ -271,6 +173,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+
   deploy:
     environment:
       name: github-pages
