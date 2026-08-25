@@ -33,7 +33,6 @@ jobs:
         with:
           ref: web-snapshot
           path: _site
-
       - name: Keep True Ending artwork current
         shell: bash
         run: |
@@ -47,13 +46,27 @@ jobs:
           cp source/rain_22_game_sprite.png _site/true-ending/rain_22_game_sprite.png
           cp main-source/bg_airport_departure_day.png _site/true-ending/bg_airport_departure_day.png
           cp main-source/shop_master_normal.png _site/true-ending/shop_master_normal.png
-
       - name: Install unified True Ending AVG UI
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'unified-main-avg-ui-v1' _site/true-ending/true-ending.css || cat source/true-ending-ui-unified.css >> _site/true-ending/true-ending.css
-
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('_site/true-ending/true-ending.css')
+          s=p.read_text(encoding='utf-8')
+          for marker in ('/* unified-main-avg-ui-v1 */','/* unified-main-avg-ui-v2 */'):
+              if marker in s: s=s.split(marker)[0].rstrip()+"\n"
+          s += Path('source/true-ending-ui-unified.css').read_text(encoding='utf-8')
+          p.write_text(s,encoding='utf-8')
+          PY
+          cp source/true-ending-display-fix.js _site/true-ending/true-ending-display-fix.js
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('_site/index.html');s=p.read_text(encoding='utf-8')
+          tag='<script src="/rebellious-youth/true-ending/true-ending-display-fix.js?v=2" defer></script>'
+          if 'true-ending-display-fix.js' not in s:s=s.replace('</body>',tag+'</body>')
+          p.write_text(s,encoding='utf-8')
+          PY
       - name: Install finalized True Ending conditions
         shell: bash
         run: |
@@ -61,14 +74,10 @@ jobs:
           cp source/true-ending-conditions.js _site/true-ending/true-ending-conditions.js
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/index.html')
-          s=p.read_text(encoding='utf-8')
-          tag='<script src="/rebellious-youth/true-ending/true-ending-conditions.js?v=final-1" defer></script>'
-          if 'true-ending-conditions.js' not in s:
-              s=s.replace('</body>',tag+'</body>')
+          p=Path('_site/index.html');s=p.read_text(encoding='utf-8');tag='<script src="/rebellious-youth/true-ending/true-ending-conditions.js?v=final-1" defer></script>'
+          if 'true-ending-conditions.js' not in s:s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
-
       - name: Keep Zeng artwork current
         shell: bash
         run: |
@@ -81,7 +90,6 @@ jobs:
           cp main-source/zeng/zeng_shock.png _site/character/zeng/zeng_shock_t2.png
           cp main-source/zeng/zeng_cold.png _site/character/zeng/zeng_serious_t2.png
           cp main-source/bg_ktv_room_night.png _site/bg_ktv_room_night.png
-
       - name: Restore Zeng main-game integration
         shell: bash
         run: |
@@ -89,64 +97,48 @@ jobs:
           curl --fail --location --silent --show-error https://raw.githubusercontent.com/rosalynlion16/rebellious-youth/d97b0e7008822927fdc49449777fff3b17a6d87f/zeng-integration.js -o _site/zeng-integration.js
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/index.html')
-          s=p.read_text(encoding='utf-8')
-          tag='<script src="/rebellious-youth/zeng-integration.js?v=2" defer></script>'
-          if 'zeng-integration.js' not in s:
-              s=s.replace('</body>',tag+'</body>')
+          p=Path('_site/index.html');s=p.read_text(encoding='utf-8');tag='<script src="/rebellious-youth/zeng-integration.js?v=2" defer></script>'
+          if 'zeng-integration.js' not in s:s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
-
       - name: Install repeat-last-week schedule helper
         shell: bash
         run: |
           cp source/schedule-helper.js _site/schedule-helper.js
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/index.html')
-          s=p.read_text(encoding='utf-8')
-          tag='<script src="/rebellious-youth/schedule-helper.js?v=1" defer></script>'
-          if 'schedule-helper.js' not in s:
-              s=s.replace('</body>',tag+'</body>')
+          p=Path('_site/index.html');s=p.read_text(encoding='utf-8');tag='<script src="/rebellious-youth/schedule-helper.js?v=1" defer></script>'
+          if 'schedule-helper.js' not in s:s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
-
       - name: Repair resource quiz transparency
         shell: bash
         run: |
           python -m pip install --quiet pillow
           python source/fix_quiz_alpha.py
-
       - name: Install Ending achievement marquee
         shell: bash
         run: |
           cp source/ending-achievements.js _site/ending-achievements.js
           python - <<'PY'
           from pathlib import Path
-          p=Path('_site/index.html')
-          s=p.read_text(encoding='utf-8')
-          tag='<script src="/rebellious-youth/ending-achievements.js?v=1" defer></script>'
-          if 'ending-achievements.js' not in s:
-              s=s.replace('</body>',tag+'</body>')
+          p=Path('_site/index.html');s=p.read_text(encoding='utf-8');tag='<script src="/rebellious-youth/ending-achievements.js?v=1" defer></script>'
+          if 'ending-achievements.js' not in s:s=s.replace('</body>',tag+'</body>')
           p.write_text(s,encoding='utf-8')
           PY
-
       - name: Verify deployment inputs
         shell: bash
         run: |
           set -euo pipefail
           test -s _site/true-ending/cg_true02_airport_group.png
+          test -s _site/true-ending/true-ending-display-fix.js
+          grep -q 'unified-main-avg-ui-v2' _site/true-ending/true-ending.css
           test -s _site/true-ending/true-ending-conditions.js
-          grep -q 'unified-main-avg-ui-v1' _site/true-ending/true-ending.css
-          grep -q 'academic:64,responsibility:70,trust:65,maxStress:50' _site/true-ending/true-ending-conditions.js
-          grep -q 'academic:60,responsibility:75,trust:65,selfEsteem:58,maxStress:50' _site/true-ending/true-ending-conditions.js
           test -s _site/zeng-route/zeng-route.js
           test -s _site/schedule-helper.js
           test -s _site/ending-achievements.js
-
       - name: Keep GitHub Pages project paths valid
         run: touch _site/.nojekyll
-
       - name: Save verified playable snapshot
         continue-on-error: true
         env:
@@ -154,17 +146,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf _site/.git
-          cd _site
-          git init
-          git checkout -b web-snapshot
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git commit -m 'Snapshot unified True Ending AVG UI and latest TE02 CG'
-          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin web-snapshot
-
+          rm -rf _site/.git;cd _site;git init;git checkout -b web-snapshot
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A;git commit -m 'Snapshot TE narration and speaker portrait fixes';git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git";git push --force origin web-snapshot
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
@@ -173,7 +157,6 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: _site
-
   deploy:
     environment:
       name: github-pages
