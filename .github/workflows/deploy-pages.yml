@@ -135,7 +135,8 @@ jobs:
           test -s _site/true-ending/cg_true02_airport_group.png
           test -s _site/true-ending/true-ending-display-fix.js
           grep -q 'unified-main-avg-ui-v4' _site/true-ending/true-ending.css
-          grep -q 'true-ending-sfx' _site/true-ending/true-ending-display-fix.js
+          grep -q 'sfx-card' _site/true-ending/true-ending-display-fix.js
+          grep -q 'time-card' _site/true-ending/true-ending-display-fix.js
           test -s _site/true-ending/true-ending-conditions.js
           test -s _site/zeng-route/zeng-route.js
           test -s _site/schedule-helper.js
